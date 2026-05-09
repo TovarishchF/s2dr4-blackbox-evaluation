@@ -145,3 +145,5 @@ docs/_build/
 *.shx
 *.cpg
 *.prj
+*.tif
+*.tiff

@@ -16,7 +16,7 @@ We treat the model as a black box – no access to architecture, weights, or tra
 ## Repository structure
 
 s2dr4-blackbox-evaluation/  
-├── main.ipynb # Main entry point  
+├── main.py # Main entry point  
 ├── src/ # Reusable modules  
 │ ├── preprocess.py # Load rasters, downscale (Wald protocol)  
 │ ├── spectral_metrics.py # RMSE, Bias, SAM (pixel‑wise + maps)  
