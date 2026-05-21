@@ -3,9 +3,8 @@ import yaml
 import numpy as np
 import rasterio
 import matplotlib.pyplot as plt
-from rasterio.enums import Resampling
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Tuple
 
 def setup_logging(log_file=None, level=logging.INFO):
     log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'

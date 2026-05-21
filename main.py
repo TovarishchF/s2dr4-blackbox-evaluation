@@ -6,7 +6,6 @@ from datetime import datetime
 
 import os
 import pyproj
-import rasterio
 import matplotlib.pyplot as plt
 
 os.environ['PROJ_LIB'] = pyproj.datadir.get_data_dir()
