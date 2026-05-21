@@ -82,6 +82,41 @@ All spectral and spatial metrics are computed **after downscaling the S2DR3 outp
 - **S2DR3** – public Colab notebook by Gamma Earth  
   ([Medium article](https://medium.com/@ya_71389/c71a601a2253))
 
+## Results
+
+The evaluation was performed on a **Sentinel‑2 L2A chip (tile T57UWA, 2024‑08‑04, ~4×4 km²)** with the S2DR3 super‑resolved output. Center coordinates: 54.4867°N, 160.0089°E (Uzon Caldera, Kamchatka).  
+All metrics follow the Wald protocol – the SR image is downscaled back to 10 m and compared with the original Sentinel‑2 reference.
+
+### Spectral accuracy
+
+| Metric | Value | Note |
+|--------|-------|------|
+| Mean SAM | **2.46°** | Far below the typical 3° quality threshold |
+| Total RMSE | **0.0137** | Reflectance units (0–1) |
+| RMSE (native 10 m bands: B02,B03,B04,B08) | 0.0024–0.0062 | Near‑perfect agreement |
+| RMSE (reconstructed 20 m bands: B05–B12) | 0.0074–0.0245 | Higher error, but still low |
+| Bias (mean per band) | ±0.005 | Negligible systematic shift |
+| ERGAS | 7.35 | Integrated index (lower is better) |
+| Overall Pearson *r* | **0.9955** | Almost perfect linear correlation |
+
+### Spatial quality (GLCM contrast & edge density)
+
+GLCM contrast and edge density were computed on raw reflectance values with consistent quantisation (64 grey levels) and Otsu‑based Sobel edges – **no per‑band min‑max stretching**.
+
+| Band type | GLCM contrast | Edge density | Interpretation |
+|-----------|----------------|--------------|----------------|
+| Native 10 m (B02,B03,B04,B08) | Original ≈ SR | Original ≈ SR | Texture is preserved, no over‑sharpening |
+| Reconstructed 20 m (B05,B06,B07,B8A,B11,B12) | SR **2–3× higher** | SR **lower** than original | Added real fine detail; removed upsampling artifacts |
+
+*Example:* B07 (SWIR) GLCM contrast: original 3.21 → SR 8.28; edge density: original 0.214 → SR 0.172.
+
+### Frequency analysis (radial power spectra)
+
+- **Native 10 m bands**: spectral slopes remain unchanged (∼ −2.7), confirming that no artificial high‑frequency noise was introduced.  
+- **Reconstructed 20 m bands**: slopes become significantly flatter (from −3.5…−3.6 to −2.7…−2.9), and the ratio of SR/original power exceeds 1 at high frequencies – direct evidence of successful detail recovery without altering the overall image structure.
+
+All figures (per‑band spectra, ratio plots, bar charts, SAM map, bias maps) are saved in `results/`.  
+
 ## Citation 
 
 If you use this module in your work, please cite the original author:  
