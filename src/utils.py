@@ -11,12 +11,12 @@ def setup_logging(log_file=None, level=logging.INFO):
     handlers = [logging.StreamHandler()]
     if log_file:
         Path(log_file).parent.mkdir(parents=True, exist_ok=True)
-        handlers.append(logging.FileHandler(log_file, mode='a'))
+        handlers.append(logging.FileHandler(log_file, mode='a', encoding='utf-8'))
     logging.basicConfig(level=level, format=log_format, handlers=handlers)
     return logging.getLogger(__name__)
 
 def load_config(config_path="config.yaml"):
-    with open(config_path, 'r') as f:
+    with open(config_path, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
     return config
 
