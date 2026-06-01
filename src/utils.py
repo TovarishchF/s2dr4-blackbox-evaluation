@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import Tuple
 
+from src.locale import get
+
 def setup_logging(log_file=None, level=logging.INFO):
     log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     handlers = [logging.StreamHandler()]
@@ -127,18 +129,20 @@ def save_colormap_image(array, output_path,
         plt.close()
 
 def plot_rmse_bars(vals, band_names, ylabel, title, save_path):
+    if ylabel is None:
+        ylabel = get('ylabel_rmse')
+    if title is None:
+        title = get('plot_title_rmse')
     x = np.arange(len(band_names))
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.bar(x, vals, color='#b2182b', edgecolor='white', linewidth=0.5, label='S2DR3')
-    ax.set_xlabel('Канал', fontsize=12)
+    ax.bar(x, vals, color='#b2182b', edgecolor='white', linewidth=0.5, label=get('legend_sr'))
+    ax.set_xlabel(get('xlabel_band'), fontsize=12)
     ax.set_ylabel(ylabel, fontsize=12)
     ax.set_title(title, fontsize=14)
     ax.set_xticks(x)
     ax.set_xticklabels(band_names, fontsize=10)
     ax.legend(fontsize=10, frameon=True, edgecolor='grey', facecolor='white')
     ax.grid(True, axis='y', which='major', linestyle='-', linewidth=0.4, color='grey', alpha=0.4)
-    ax.yaxis.set_minor_locator(plt.matplotlib.ticker.AutoMinorLocator(2))
-    ax.grid(True, axis='y', which='minor', linestyle='-', linewidth=0.2, color='grey', alpha=0.2)
     ax.set_facecolor('#f7f7f7')
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -152,95 +156,45 @@ def plot_bias_bars(bias_vals, band_names, save_path):
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.bar(x, bias_vals, color=colors, edgecolor='white', linewidth=0.5)
     ax.axhline(0, color='black', linewidth=0.8)
-    ax.set_xlabel('Канал', fontsize=12)
-    ax.set_ylabel('Смещение (отражение)', fontsize=12)
-    ax.set_title('Среднее поканальное смещение', fontsize=14)
+    ax.set_xlabel(get('xlabel_band'), fontsize=12)
+    ax.set_ylabel(get('ylabel_bias'), fontsize=12)
+    ax.set_title(get('plot_title_bias'), fontsize=14)
     ax.set_xticks(x)
     ax.set_xticklabels(band_names, fontsize=10)
     ax.grid(True, axis='y', which='major', linestyle='-', linewidth=0.4, color='grey', alpha=0.4)
-    ax.yaxis.set_minor_locator(plt.matplotlib.ticker.AutoMinorLocator(2))
-    ax.grid(True, axis='y', which='minor', linestyle='-', linewidth=0.2, color='grey', alpha=0.2)
     ax.set_facecolor('#f7f7f7')
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     from matplotlib.patches import Patch
     legend_elements = [
-                    Patch(facecolor='#2166ac', label='Отрицательное'),
-                    Patch(facecolor='#b2182b', label='Положительное')]
+        Patch(facecolor='#2166ac', label=get('legend_negative')),
+        Patch(facecolor='#b2182b', label=get('legend_positive'))
+    ]
     ax.legend(handles=legend_elements, edgecolor='grey', fontsize=9, loc='upper right')
     fig.tight_layout()
     fig.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close(fig)
 
 def plot_per_band_bars(orig_vals, sr_vals, band_names, ylabel, title, save_path, colors=('#2166ac', '#b2182b')):
+    if ylabel is None:
+        ylabel = get('ylabel_glcm')
+    if title is None:
+        title = get('plot_title_glcm')
     x = np.arange(len(band_names))
     width = 0.35
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.bar(x - width/2, orig_vals, width, label='Оригинал S2', color=colors[0], edgecolor='white', linewidth=0.5)
-    ax.bar(x + width/2, sr_vals, width, label='S2DR3', color=colors[1], edgecolor='white', linewidth=0.5)
-    ax.set_xlabel('Канал', fontsize=12)
+    ax.bar(x - width/2, orig_vals, width, label=get('legend_orig'), color=colors[0], edgecolor='white', linewidth=0.5)
+    ax.bar(x + width/2, sr_vals, width, label=get('legend_sr'), color=colors[1], edgecolor='white', linewidth=0.5)
+    ax.set_xlabel(get('xlabel_band'), fontsize=12)
     ax.set_ylabel(ylabel, fontsize=12)
     ax.set_title(title, fontsize=14)
     ax.set_xticks(x)
     ax.set_xticklabels(band_names, fontsize=10)
     ax.legend(fontsize=10, frameon=True, edgecolor='grey', facecolor='white')
     ax.grid(True, axis='y', which='major', linestyle='-', linewidth=0.4, color='grey', alpha=0.4)
-    ax.yaxis.set_minor_locator(plt.matplotlib.ticker.AutoMinorLocator(2))
-    ax.grid(True, axis='y', which='minor', linestyle='-', linewidth=0.2, color='grey', alpha=0.2)
     ax.set_facecolor('#f7f7f7')
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     fig.tight_layout()
     fig.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close(fig)
-
-def plot_spectral_profiles(orig, sr, classes, band_names, out_dir, window=3):
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    def extract_spectrum(stack, r, c, w):
-        r0 = max(0, r - w//2)
-        r1 = min(stack.shape[1], r + w//2 + 1)
-        c0 = max(0, c - w//2)
-        c1 = min(stack.shape[2], c + w//2 + 1)
-        return np.nanmean(stack[:, r0:r1, c0:c1], axis=(1,2))
-
-    n_bands = orig.shape[0]
-    band_indices = np.arange(n_bands)
-
-    all_vals = []
-    for points in classes.values():
-        for r, c in points:
-            all_vals.append(extract_spectrum(orig, r, c, window))
-            all_vals.append(extract_spectrum(sr, r, c, window))
-    all_vals = np.concatenate(all_vals)
-    y_min = np.min(all_vals) * 0.9
-    y_max = np.max(all_vals) * 1.1
-
-    for class_name, points in classes.items():
-        fig, ax = plt.subplots(figsize=(10, 5))
-        for i, (r, c) in enumerate(points):
-            spec_orig = extract_spectrum(orig, r, c, window)
-            spec_sr = extract_spectrum(sr, r, c, window)
-            lbl_orig = 'Оригинал' if i == 0 else None
-            lbl_sr = 'SR' if i == 0 else None
-            ax.plot(band_indices, spec_orig, 'o-', color='#2166ac',
-                    label=lbl_orig)
-            ax.plot(band_indices, spec_sr, 's--', color='#b2182b',
-                    label=lbl_sr)
-        ax.set_xticks(band_indices)
-        ax.set_xticklabels(band_names, rotation=45)
-        ax.set_xlabel('Канал')
-        ax.set_ylabel('Отражение')
-        ax.set_title(f'Спектральные профили — {class_name}')
-        ax.set_ylim(y_min, y_max)
-        ax.set_facecolor('#f7f7f7')
-        ax.grid(True, axis='y', which='major', linestyle='-', linewidth=0.4, color='grey', alpha=0.4)
-        ax.yaxis.set_minor_locator(plt.matplotlib.ticker.AutoMinorLocator(2))
-        ax.grid(True, axis='y', which='minor', linestyle='-', linewidth=0.2, color='grey', alpha=0.2)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.legend(loc='upper right', edgecolor='grey')
-        fig.tight_layout()
-        fig.savefig(out_dir / f'spectral_profile_{class_name}.png', dpi=150, bbox_inches='tight')
-        plt.close(fig)

@@ -1,3 +1,5 @@
+language: "ru"   # "en" or "ru"
+
 territories:
   - name: "Uzon"
     s2_dir: "data/Uzon/s2_10m/"

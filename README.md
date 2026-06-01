@@ -11,6 +11,7 @@ The model is treated as a black box – no access to architecture, weights, or t
   - Frequency: radial power spectrum, spectral difference plots, per‑band spectral slopes.
 - **Visualisation**: bias maps (absolute and relative), SAM map, per‑band bar charts, spectral profiles for selected land‑cover classes.
 - **Multi‑territory support**: evaluate the model on several volcanic sites in one run.
+- **Localisation** – switch between Russian and English output (logs, plot labels, map titles) via `config.yaml`.
 
 ## Multi‑territory workflow
 The pipeline processes each territory independently. For every territory:

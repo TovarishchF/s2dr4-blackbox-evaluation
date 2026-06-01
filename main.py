@@ -1,4 +1,3 @@
-import logging
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -12,52 +11,52 @@ os.environ['PROJ_LIB'] = pyproj.datadir.get_data_dir()
 sys.path.insert(0, str(Path(__file__).parent))
 
 from src.utils import (load_config, setup_logging, save_colormap_image,
-                       plot_rmse_bars, plot_bias_bars, plot_per_band_bars,
-                       plot_spectral_profiles, ensure_territory_dirs)
+                       plot_rmse_bars, plot_bias_bars, plot_per_band_bars, ensure_territory_dirs)
 from src.preprocess import load_data, downsample_sr_to_original, crop_to_common_extent
 from src.spectral_metrics import rmse, bias, sam, channel_rmse, ergas, channel_correlation, overall_correlation
 from src.spatial_metrics import glcm_contrast_multiband, edge_density_multiband
 from src.freq_metrics import radial_spectrum, plot_radial_spectrum, plot_spectrum_diff
+from src.locale import set_language, get
 
 def process_territory(territory_cfg, bands, results_root, logger):
     name = territory_cfg['name']
-    logger.info(f"=== Обработка территории: {name} ===")
+    logger.info(get('log_territory', name))
+
     out_base = ensure_territory_dirs(name, results_root)
     fig_dir = out_base / "figures"
     fft_dir = out_base / "fft"
     maps_dir = out_base / "maps" / "Bias"
     csv_dir = out_base
-    csv_dir.mkdir(parents=True, exist_ok=True)
 
     orig_stack, sr_stack, orig_geoinfo, sr_geoinfo = load_data(territory_cfg)
-    logger.info(f"Исходный S2: форма {orig_stack.shape}, dtype={orig_stack.dtype}")
-    logger.info(f"SR: форма {sr_stack.shape}, dtype={sr_stack.dtype}")
+    logger.info(get('log_shape_orig', orig_stack.shape, orig_stack.dtype))
+    logger.info(get('log_shape_sr', sr_stack.shape, sr_stack.dtype))
 
     orig_cropped, sr_cropped, geoinfo = crop_to_common_extent(
         orig_stack, orig_geoinfo, sr_stack, sr_geoinfo
     )
-    logger.info(f"После обрезки — исходный: {orig_cropped.shape}")
-    logger.info(f"После обрезки — SR: {sr_cropped.shape}")
+    logger.info(get('log_cropped_orig', orig_cropped.shape))
+    logger.info(get('log_cropped_sr', sr_cropped.shape))
 
     target_shape = orig_cropped.shape[1:]
     downsampled = downsample_sr_to_original(sr_cropped, target_shape)
-    logger.info(f"Пониженный до разрешения SR: форма {downsampled.shape}")
+    logger.info(get('log_downsampled', downsampled.shape))
 
     orig_cropped /= 10000.0
     downsampled /= 10000.0
 
     total_rmse = rmse(orig_cropped, downsampled)
-    logger.info(f"Общий RMSE: {total_rmse:.6f}")
+    logger.info(get('log_rmse_total', total_rmse))
 
     ch_rmse = channel_rmse(orig_cropped, downsampled)
     for b, val in zip(bands, ch_rmse):
-        logger.info(f"RMSE {b}: {val:.6f}")
+        logger.info(get('log_rmse_band', b, val))
 
     corr_per_band = channel_correlation(orig_cropped, downsampled)
     corr_overall = overall_correlation(orig_cropped, downsampled)
     for b, r in zip(bands, corr_per_band):
-        logger.info(f"Корреляция {b}: {r:.4f}")
-    logger.info(f"Общая корреляция: {corr_overall:.4f}")
+        logger.info(get('log_corr_band', b, r))
+    logger.info(get('log_corr_overall', corr_overall))
 
     mean_bias, bias_map = bias(orig_cropped, downsampled)
     for idx, b in enumerate(bands):
@@ -67,7 +66,7 @@ def process_territory(territory_cfg, bands, results_root, logger):
             geoinfo['transform'],
             geoinfo['crs'],
             cmap='coolwarm',
-            title=f'Смещение {b}',
+            title=get('bias_map_title', b),
             draw_grid=True,
             bounds=geoinfo['bounds']
         )
@@ -81,13 +80,13 @@ def process_territory(territory_cfg, bands, results_root, logger):
             geoinfo['transform'],
             geoinfo['crs'],
             cmap='coolwarm',
-            title=f'Смещение {b} (%)',
+            title=get('bias_percent_title', b),
             draw_grid=True,
             bounds=geoinfo['bounds'],
             vmin=-symmetric_vmax,
             vmax=symmetric_vmax
         )
-        logger.info(f"Смещение {b}: {mean_bias[idx]:.6f}")
+        logger.info(get('log_bias_band', b, mean_bias[idx]))
 
     mean_sam, sam_map = sam(orig_cropped, downsampled)
     save_colormap_image(
@@ -96,14 +95,14 @@ def process_territory(territory_cfg, bands, results_root, logger):
         geoinfo['transform'],
         geoinfo['crs'],
         cmap='viridis',
-        title='SAM (град.)',
+        title=get('sam_map_title'),
         draw_grid=True,
         bounds=geoinfo['bounds']
     )
-    logger.info(f"Средний SAM: {mean_sam:.2f}°")
+    logger.info(get('log_sam', mean_sam))
 
     ergas_val = ergas(orig_cropped, downsampled)
-    logger.info(f"ERGAS: {ergas_val:.4f}")
+    logger.info(get('log_ergas', ergas_val))
 
     glcm_orig = glcm_contrast_multiband(orig_cropped, levels=64)
     glcm_down = glcm_contrast_multiband(downsampled, levels=64)
@@ -111,18 +110,18 @@ def process_territory(territory_cfg, bands, results_root, logger):
     ed_down = edge_density_multiband(downsampled, method='canny')
 
     for i, b in enumerate(bands):
-        logger.info(f"Контраст GLCM {b}: исходный={glcm_orig[i]:.4f}, SR={glcm_down[i]:.4f}")
-        logger.info(f"Плотность границ {b}: исходный={ed_orig[i]:.4f}, SR={ed_down[i]:.4f}")
+        logger.info(get('log_glcm', b, glcm_orig[i], glcm_down[i]))
+        logger.info(get('log_edge', b, ed_orig[i], ed_down[i]))
 
     plot_rmse_bars(ch_rmse, bands,
-                   'СКО (отражение)', 'Поканальная СКО',
+                   get('ylabel_rmse'), get('plot_title_rmse'),
                    str(fig_dir / 'rmse_bars.png'))
     plot_bias_bars(mean_bias, bands, str(fig_dir / 'bias_bars.png'))
     plot_per_band_bars(glcm_orig, glcm_down, bands,
-                       'Контраст GLCM', 'GLCM контраст',
+                       get('ylabel_glcm'), get('plot_title_glcm'),
                        str(fig_dir / 'glcm_bars.png'))
     plot_per_band_bars(ed_orig, ed_down, bands,
-                       'Плотность границ', 'Плотность границ',
+                       get('ylabel_edge'), get('plot_title_edge'),
                        str(fig_dir / 'edge_density_bars.png'))
 
     slopes_orig = []
@@ -152,11 +151,11 @@ def process_territory(territory_cfg, bands, results_root, logger):
         power_sr = all_pow_sr[i]
         plot_radial_spectrum(freqs, power_orig, power_sr,
                              save_path=str(fft_dir / f'radial_spectrum_{b}.png'),
-                             title=f"Радиальный спектр {b}",
+                             title=get('plot_title_radial'),
                              xlim=freq_lims, ylim=pow_lims)
         plot_spectrum_diff(freqs, power_orig, power_sr,
                            save_path=str(fft_dir / f'difference_{b}.png'),
-                           title=f"Разность спектров {b}",
+                           title=get('plot_title_diff'),
                            xlim=freq_lims, ylim=diff_lims)
 
         valid = (power_orig > 0) & (power_sr > 0)
@@ -170,7 +169,7 @@ def process_territory(territory_cfg, bands, results_root, logger):
             slope_orig = slope_sr = np.nan
         slopes_orig.append(slope_orig)
         slopes_sr.append(slope_sr)
-        logger.info(f"Наклон спектра {b}: исходный={slope_orig:.3f}, SR={slope_sr:.3f}")
+        logger.info(get('log_slope', b, slope_orig, slope_sr))
 
     metrics_dict = {
         'territory': name,
@@ -192,43 +191,39 @@ def process_territory(territory_cfg, bands, results_root, logger):
     df = pd.DataFrame([metrics_dict])
     csv_path = csv_dir / f"{name}_metrics.csv"
     df.to_csv(csv_path, index=False)
-    logger.info(f"Метрики сохранены в {csv_path}")
+    logger.info(get('log_saved_csv', csv_path))
 
-    classes = {
-        'Вода': [(144, 51)],
-        'Трава': [(249, 119)],
-        'Лес': [(334, 364)],
-        'Почва': [(256, 153)],
-    }
-    plot_spectral_profiles(orig_cropped, downsampled, classes,
-                           bands, str(fig_dir), window=3)
-
-    logger.info(f"=== Завершена обработка территории {name} ===")
+    logger.info(get('log_territory_done', name))
     return metrics_dict
 
 def main():
     start_time = datetime.now()
-    logger = setup_logging(log_file="logs/eval.log", level=logging.INFO)
-    logger.info(f"=== Старт мультитерриториальной оценки {start_time.strftime('%Y-%m-%d %H:%M:%S')} ===")
     config = load_config("config.yaml")
+    set_language(config.get('language', 'ru'))
+    logger = setup_logging(log_file="logs/eval.log", level=config['logging']['level'])
+    logger.info(get('log_start'))
+
     territories = config['territories']
     bands = config['bands']
     results_root = config['results_root']
+
     all_metrics = []
     for t in territories:
         try:
             metrics = process_territory(t, bands, results_root, logger)
             all_metrics.append(metrics)
         except Exception as e:
-            logger.error(f"Ошибка при обработке {t.get('name', 'unknown')}: {e}", exc_info=True)
+            logger.error(get('log_error', t.get('name', 'unknown'), str(e)), exc_info=True)
+
     if all_metrics:
         df_all = pd.DataFrame(all_metrics)
         df_all.to_csv(Path(results_root) / "all_territories_summary.csv", index=False)
-        logger.info("Сводная таблица по всем территориям сохранена")
+        logger.info(get('log_aggregated'))
     else:
-        logger.warning("Нет успешно обработанных территорий")
+        logger.warning(get('log_no_territories'))
+
     end_time = datetime.now()
-    logger.info(f"=== Оценка завершена {end_time.strftime('%Y-%m-%d %H:%M:%S')}, время: {end_time - start_time} ===")
+    logger.info(get('log_end', end_time.strftime('%Y-%m-%d %H:%M:%S'), str(end_time - start_time)))
 
 if __name__ == "__main__":
     main()
