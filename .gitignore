@@ -110,9 +110,9 @@ Thumbs.db
 
 # Data folders (large, or sensitive, or generated)
 data/
-results/*.tif
-results/*.jpg
-results/*.png
+*.tif
+*.jpg
+*.png
 *.geojson
 *.gpkg
 

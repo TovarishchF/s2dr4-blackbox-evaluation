@@ -34,6 +34,18 @@ def write_raster(filepath, array, transform, crs):
     ) as dst:
         dst.write(array, 1)
 
+def ensure_territory_dirs(territory_name, results_root):
+    base = Path(results_root) / territory_name
+    dirs = [
+        base / "figures",
+        base / "fft",
+        base / "maps" / "Bias",
+        base
+    ]
+    for d in dirs:
+        d.mkdir(parents=True, exist_ok=True)
+    return base
+
 def find_stack_ms_file(directory: str) -> Path:
     directory = Path(directory)
     if not directory.exists():

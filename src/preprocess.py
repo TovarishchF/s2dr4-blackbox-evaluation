@@ -7,10 +7,9 @@ from rasterio.warp import reproject, Resampling
 from src.utils import load_stack_ms, find_stack_ms_file
 
 
-def load_data(config):
-    s2_dir = config['data']['s2_dir']
-    s2sr_dir = config['data']['s2sr_dir']
-    bands_order = config['bands']
+def load_data(territory_cfg):
+    s2_dir = territory_cfg['s2_dir']
+    s2sr_dir = territory_cfg['s2sr_dir']
     band_files = find_stack_ms_file(s2_dir)
     orig_stack, orig_geoinfo = load_stack_ms(band_files)
     s2sr_path = find_stack_ms_file(s2sr_dir)

@@ -8,33 +8,59 @@ The model is treated as a black box – no access to architecture, weights, or t
 - **Quantitative metrics**:
   - Spectral: RMSE, bias, SAM (Spectral Angle Mapper), ERGAS, per‑band and overall correlation (*r*).
   - Spatial: GLCM contrast, edge density (Canny).
-  - Frequency: radial power spectrum, spectral ratio, difference plots.
+  - Frequency: radial power spectrum, spectral difference plots, per‑band spectral slopes.
 - **Visualisation**: bias maps (absolute and relative), SAM map, per‑band bar charts, spectral profiles for selected land‑cover classes.
+- **Multi‑territory support**: evaluate the model on several volcanic sites in one run.
 
+## Multi‑territory workflow
+The pipeline processes each territory independently. For every territory:
+- original Sentinel‑2 L2A and S2DR3 output are loaded from dedicated subfolders
+- images are cropped to a common extent and the SR image is downsampled to 10 m
+- all metrics are computed, plots and maps are saved inside `results/{territory_name}/`
+- a CSV file with per‑territory metrics is stored in `results/{territory_name}/csv/`
+
+After processing all territories, a summary CSV (`all_territories_summary.csv`) is created in the root results folder.
 ## Why black‑box?
 - Simulates a real‑world scenario where only the API or output files are available.
 - Guarantees an independent, reproducible evaluation without internal knowledge of the algorithm.
 - The methodology can be applied to any super‑resolution service.
 
 ## Repository structure
-
-s2dr4-blackbox-evaluation/  
-├── main.py # Main entry point  
-├── src/ # Reusable modules  
-│ ├── preprocess.py # Load rasters, downscale (Wald protocol)  
-│ ├── spectral_metrics.py # RMSE, Bias, SAM (pixel‑wise + maps)  
-│ ├── spatial_metrics.py # GLCM contrast, edge density  
-│ ├── freq_metrics.py # FFT, radial power spectrum  
-│ └── utils.py # Visualisation helpers, config  
-├── data/ # (ignored)  
-│ ├── s2_10m/ # Original Sentinel-2 tile   
-│ └── s2sr_1m/ # Super-resolution S2DR3 tile    
-├── results/ # (auto‑created) – tables, plots, maps  
-├── config.yaml # Configuration file containing paths, etc.  
-├── requirements.txt  
-├── LICENSE  
-└── .gitignore  
-
+```
+s2dr3-blackbox-evaluation/
+├── main.py # Main entry point (multi‑territory loop)
+├── config.yaml # Configuration (list of territories, bands, paths)
+├── requirements.txt
+├── LICENSE
+├── .gitignore
+├── README.md
+├── data/ 
+│ ├── Uzon/
+│ │ ├── s2_10m/ # Original Sentinel‑2 L2A (10m grid)
+│ │ └── s2sr_1m/ # S2DR3 super‑resolved output (1m)
+│ ├── Klyuchevskoy/
+│ │ ├── s2_10m/
+│ │ └── s2sr_1m/
+│ └── ... (other territories)
+├── results/ # Auto‑created during evaluation
+│ ├── Uzon/
+│ │ ├── figures/ # Bar charts, spectral profiles
+│ │ ├── fft/ # Radial spectra and difference plots
+│ │ ├── maps/
+│ │ │ └── Bias/ # Bias maps (absolute and %)
+│ │ └── csv/ # Per‑territory metrics CSV
+│ ├── Klyuchevskoy/
+│ │ └── ...
+│ └── all_territories_summary.csv
+├── src/
+│ ├── preprocess.py # Load rasters, downscale (Wald protocol), crop
+│ ├── spectral_metrics.py # RMSE, Bias, SAM, ERGAS, correlation
+│ ├── spatial_metrics.py # GLCM contrast, edge density
+│ ├── freq_metrics.py # FFT, radial power spectrum, plots
+│ └── utils.py # Visualisation helpers, config, directory creation
+└── logs/
+  └── eval.log
+```
 ## All implemented no‑reference metrics
 
 | Category    | Metric                                | Module            |

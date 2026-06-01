@@ -1,11 +1,12 @@
-data:
-  s2_dir: "data/s2_10m/"
-  s2sr_dir: "data/s2sr_1m/"
-  results_dir: "results/"
+territories:
+  - name: "Uzon"
+    s2_dir: "data/Uzon/s2_10m/"
+    s2sr_dir: "data/Uzon/s2sr_1m/"
 
 bands: ["B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12"]
+
+results_root: "results/"
 
 logging:
   level: "INFO"
   log_file: "logs/evaluation.log"
-
